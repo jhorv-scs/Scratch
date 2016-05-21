@@ -16,11 +16,6 @@ type System.DateTimeOffset with
     static member FromFileSystemFriendlyName (x: string) =
         DateTimeOffset.ParseExact(x.Replace('_', ':'), "O", null)
 
-type ScratchpadCommand =
-    | Reset
-    | List
-    | Hoist
-
 type FsObjectType =
     | File
     | FileLink
@@ -84,7 +79,8 @@ let getMomentRelativeSnapshotPath (m: DateTimeOffset) =
     let tIndex = str.IndexOf('T')
     let dateStr = str.Substring(0, tIndex)
     let timeStr = str.Substring(tIndex + 1)
-    [| timeStr.Replace(':', '_') |]
+    //[| timeStr.Replace(':', '_') |]
+    Seq.singleton (timeStr.Replace(':', '_'))
     |> Seq.append (dateStr.Split '-')
     |> Seq.toArray
     |> Path.Combine
@@ -98,7 +94,7 @@ let getRelativeSnapshotPathMoment (p: string) =
         | _ -> None
     | _ -> None
 
-type Snapshot = {
+type ScratchpadInstance = {
     Path : string
     Moment : DateTimeOffset
     Objects : FsObject array
@@ -133,7 +129,7 @@ with
                 |> Seq.where (fun p -> Path.GetFileName(p) |> isIntOfLength 2)
                 |> Seq.collect (fun timePath ->
                     Directory.EnumerateDirectories timePath
-                    |> Seq.map (fun p -> Snapshot.New p)
+                    |> Seq.map (fun p -> ScratchpadInstance.New p)
                     |> Seq.where (fun x -> x.IsSome)
                     |> Seq.map (fun x -> x.Value)
                     )
@@ -141,12 +137,32 @@ with
                 )
             )
 
-type SnapshotItem = {
+type ScratchpadItem = {
     Name : string
-    Instances : Snapshot seq
+    Instances : ScratchpadInstance seq
 }
 with
-    member x.HasMultipleInstances with get() = (Seq.length x.Instances) > 1
+    member x.HasMultipleInstances with get() = (Seq. length x.Instances) > 1
+    member x.Hoist() =
+        ()
+    static member EnumerateAll () =
+        ScratchpadInstance.EnumerateAll()
+        |> Seq.collect (fun s ->
+            s.Objects
+            |> Seq.where (fun fso -> fso.Type = Directory)
+            |> Seq.map (fun fso -> (Path.GetFileName(fso.FullName), s))
+            )
+        |> Seq.groupBy (fun (directory, snapshots) -> directory)
+        |> Seq.map (
+            fun group ->
+                let itemKey = fst group
+                let instances =
+                    snd group
+                    |> Seq.map snd
+                { Name = itemKey; Instances = instances }
+            )
+
+
 
 let createNewSnapshotPath() =
     let relPath = getMomentRelativeSnapshotPath DateTimeOffset.UtcNow
@@ -185,34 +201,43 @@ let executeResetCommand() =
         |> Seq.iter (fun fso -> fso.MoveNoThrow snapshotPath)
 
 let executeListCommand() =
-    Snapshot.EnumerateAll()
-    |> Seq.collect (fun s ->
-        s.Objects
-        |> Seq.where (fun fso -> fso.Type = Directory)
-        |> Seq.map (fun fso -> (Path.GetFileName(fso.FullName), s))
-        )
-    |> Seq.groupBy (fun (directory, snapshots) -> directory)
-    |> Seq.map (
-        fun group ->
-            let itemKey = fst group
-            let instances =
-                snd group
-                |> Seq.map snd
-            { Name = itemKey; Instances = instances }
-        )
+    ScratchpadItem.EnumerateAll()
+    |> Seq.iter (fun x -> printfn "%s" x.Name)
 
-let executeHoistCommand() =
-    ()
+let executeHoistExactCommand (item: ScratchpadItem) =
+    raise <| NotImplementedException()
+
+let executeHoistByNameCommand (name: string) =
+    let result =
+        ScratchpadItem.EnumerateAll()
+        |> Seq.where (fun i -> i.Name = name)
+        |> Seq.tryHead
+
+    match result with
+    | Some(i) ->
+        if i.HasMultipleInstances then
+            failwith <| sprintf "multiple items found with name \"%s\"" name
+        else
+            i.Hoist()
+    | None ->
+        failwith <| sprintf "no items found with name \"%s\"" name
+        
+type Command =
+    | Reset
+    | List
+    | HoistExact of ScratchpadItem
+    | HoistByName of string
+
 
 let execute c =
     match c with
     | Reset -> executeResetCommand()
-    | List ->
-        executeListCommand()
-        |> Seq.iter (fun x -> printfn "%s" x.Name)
-    | Hoist -> executeHoistCommand()
+    | List -> executeListCommand()
+//        executeListCommand()
+//        |> Seq.iter (fun x -> printfn "%s" x.Name)
+    | HoistExact(item) -> executeHoistExactCommand item
+    | HoistByName(name) -> executeHoistByNameCommand name
 
 ensureScratchpadInitialized()
-
 //execute List
 
