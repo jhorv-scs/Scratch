@@ -19,10 +19,13 @@ type MainFormBase() as this =
         // create a few commands that can be used for the menu and toolbar
         let clickMe = new Command(MenuText = "Click Me!", ToolBarText = "Click Me!")
         clickMe.Executed.Add(fun e -> ignore(MessageBox.Show(this, "I was clicked!")))
+        
+        let settingsCommand = new Command(MenuText = "Settings")
+        settingsCommand.Executed.Add(fun e -> SettingsDialog().ShowModal(this))
 
-        let quitCommand = new Command(MenuText = "Quit")
-        quitCommand.Shortcut <- Application.Instance.CommonModifier ||| Keys.Q
-        quitCommand.Executed.Add(fun e -> Application.Instance.Quit())
+        let exitCommand = new Command(MenuText = "E&xit")
+        exitCommand.Shortcut <- Application.Instance.AlternateModifier ||| Keys.F4
+        exitCommand.Executed.Add(fun e -> Application.Instance.Quit())
 
         let aboutCommand = new Command(MenuText = "About...")
         aboutCommand.Executed.Add(fun e -> ignore(MessageBox.Show(this, "About my app...")))
@@ -40,7 +43,8 @@ type MainFormBase() as this =
         *)
 
         base.Menu.ApplicationItems.Add(new ButtonMenuItem(Text = "&Preferences..."))
-        base.Menu.QuitItem <- quitCommand.CreateMenuItem()
+        base.Menu.ApplicationItems.Add(new ButtonMenuItem(settingsCommand))
+        base.Menu.QuitItem <- exitCommand.CreateMenuItem()
         base.Menu.AboutItem <- aboutCommand.CreateMenuItem()
 
         base.ToolBar <- new ToolBar()
