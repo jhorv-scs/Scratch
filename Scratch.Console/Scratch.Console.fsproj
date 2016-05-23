@@ -55,6 +55,10 @@
   <Import Project="$(FSharpTargetsPath)" />
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
+    <Compile Include="Prelude.fs" />
+    <Compile Include="SymbolicLink.fs" />
+    <Compile Include="FileSystem.fs" />
+    <Compile Include="Scratchpad.fs" />
     <Compile Include="Program.fs" />
     <None Include="Script1.fsx" />
     <None Include="App.config" />
