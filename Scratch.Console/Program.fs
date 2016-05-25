@@ -5,16 +5,12 @@ open Scratch.Scratchpad
 
 module Program =
 
-    let ensureScratchpadInitialized() =
-        Directory.CreateDirectory(rootPath) |> ignore
-        Directory.CreateDirectory(stateDirPath) |> ignore
-
     let executeResetCommand() =
         let isNotStateDirectory (fso: FsObject) =
-            stateDirPath.Equals(fso.FullName, StringComparison.OrdinalIgnoreCase) = false
+            SnapshotDirectory.directoryPath.Equals(fso.FullName, StringComparison.OrdinalIgnoreCase) = false
 
         let enumerateScratchpad () =
-            rootPath
+            Scratchpad.rootPath
             |> FsObject.Enumerate 
             |> Seq.where isNotStateDirectory
 
@@ -23,16 +19,19 @@ module Program =
             |> Seq.isEmpty
 
         if not isScratchpadEmpty then
-            let snapshotPath = createNewSnapshotPath()
+            let snapshotPath = SnapshotDirectory.createNewSnapshotPath()
             enumerateScratchpad()
             |> Seq.iter (fun fso -> fso.MoveNoThrow snapshotPath)
+
 
     let executeListCommand() =
         ScratchpadItem.EnumerateAll()
         |> Seq.iter (fun x -> printfn "%s" x.Name)
 
+
     let executeHoistExactCommand (item: ScratchpadItem) =
         raise <| NotImplementedException()
+
 
     let executeHoistByNameCommand (name: string) =
         let result =
@@ -70,6 +69,6 @@ module Program =
     [<EntryPoint>]
     let main argv = 
         printfn "%A" argv
-        ensureScratchpadInitialized()
+        Scratchpad.ensureInitialized()
 
         0 // return an integer exit code

@@ -3,10 +3,6 @@ module Scratch.Prelude
 open System
 open System.IO
 
-let rootPath = @"D:\ScratchpadTest"
-let stateDirName = ".scratchpad"
-let stateDirPath = Path.Combine(rootPath, stateDirName)
-
 let logException (ex: Exception) =
     System.Console.Error.WriteLine(ex)
 
