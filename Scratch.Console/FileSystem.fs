@@ -40,7 +40,7 @@ with
                         else File
         }
 
-    static member Enumerate (p: string) = 
+    static member Enumerate (p: string) =
         let dirs = 
             Directory.EnumerateDirectories(p)
             |> Seq.map DirectoryInfo
